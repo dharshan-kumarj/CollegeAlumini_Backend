@@ -21,17 +21,17 @@ services:
     depends_on:
       - db
 
-  backend:
-    build: ./backend
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-    env_file:
-      - ./.env
+  # backend:
+  #   build: ./
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   volumes:
+  #     - ./:/app
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - db
+  #   env_file:
+  #     - ./.env
 
 volumes:
   postgres_data:

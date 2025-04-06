@@ -148,6 +148,50 @@ async def update_alumni(
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+@app.post("/api/admin/alumni/{alumni_id}/job")
+async def add_job_for_alumni(
+    alumni_id: int = Path(...),
+    job_data: dict = Body(...),
+    current_user: dict = Depends(admin_only)
+):
+    result = AdminService.add_job_for_alumni(alumni_id, job_data)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.delete("/api/admin/alumni/{alumni_id}/job/{job_id}")
+async def delete_job_for_alumni(
+    alumni_id: int = Path(...),
+    job_id: int = Path(...),
+    current_user: dict = Depends(admin_only)
+):
+    result = AdminService.delete_job_for_alumni(alumni_id, job_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.post("/api/admin/alumni/{alumni_id}/education")
+async def add_education_for_alumni(
+    alumni_id: int = Path(...),
+    education_data: dict = Body(...),
+    current_user: dict = Depends(admin_only)
+):
+    result = AdminService.add_education_for_alumni(alumni_id, education_data)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.delete("/api/admin/alumni/{alumni_id}/education/{education_id}")
+async def delete_education_for_alumni(
+    alumni_id: int = Path(...),
+    education_id: int = Path(...),
+    current_user: dict = Depends(admin_only)
+):
+    result = AdminService.delete_education_for_alumni(alumni_id, education_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
 # First define the specific route
 @app.get("/api/admin/alumni/filter")
 async def filter_alumni(

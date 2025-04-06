@@ -376,6 +376,155 @@ class AdminService:
         finally:
             conn.close()
     
+    # Add this method to your AdminService class in your services.py file
+    @staticmethod
+    def add_job_for_alumni(alumni_id, job_data):
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Verify alumni exists
+            cursor.execute("SELECT alumni_id FROM alumni WHERE alumni_id = %s", (alumni_id,))
+            if not cursor.fetchone():
+                return {"error": "Alumni not found"}
+                
+            # Insert the job record
+            cursor.execute("""
+                INSERT INTO jobs 
+                (alumni_id, company_name, position, location, start_date, end_date, is_current, description)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING job_id
+            """, (
+                alumni_id,
+                job_data.get("company_name"),
+                job_data.get("position"),
+                job_data.get("location"),
+                job_data.get("start_date"),
+                job_data.get("end_date", None),
+                job_data.get("is_current", False),
+                job_data.get("description")
+            ))
+            
+            job_id = cursor.fetchone()["job_id"]
+            conn.commit()
+            return {"job_id": job_id, "status": "success"}
+            
+        except Exception as e:
+            conn.rollback()
+            return {"error": str(e)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_job_for_alumni(alumni_id, job_id):
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Verify job exists and belongs to this alumni
+            cursor.execute(
+                "SELECT job_id FROM jobs WHERE job_id = %s AND alumni_id = %s", 
+                (job_id, alumni_id)
+            )
+            
+            if not cursor.fetchone():
+                return {"error": "Job not found or does not belong to this alumni"}
+            
+            # Delete the job
+            cursor.execute(
+                "DELETE FROM jobs WHERE job_id = %s", 
+                (job_id,)
+            )
+            
+            conn.commit()
+            return {"status": "success", "message": "Job deleted successfully"}
+            
+        except Exception as e:
+            conn.rollback()
+            return {"error": str(e)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def add_education_for_alumni(alumni_id, education_data):
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Verify alumni exists
+            cursor.execute("SELECT alumni_id FROM alumni WHERE alumni_id = %s", (alumni_id,))
+            if not cursor.fetchone():
+                return {"error": "Alumni not found"}
+                
+            # Insert the education record
+            cursor.execute("""
+                INSERT INTO education 
+                (alumni_id, degree, department, institution, start_year, end_year, achievements, cgpa)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING education_id
+            """, (
+                alumni_id,
+                education_data.get("degree"),
+                education_data.get("department"),
+                education_data.get("institution", "Our College"),
+                education_data.get("start_year"),
+                education_data.get("end_year"),
+                education_data.get("achievements"),
+                education_data.get("cgpa")
+            ))
+            
+            education_id = cursor.fetchone()["education_id"]
+            conn.commit()
+            return {"education_id": education_id, "status": "success"}
+            
+        except Exception as e:
+            conn.rollback()
+            return {"error": str(e)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def delete_education_for_alumni(alumni_id, education_id):
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Verify education record exists and belongs to this alumni
+            cursor.execute(
+                "SELECT education_id FROM education WHERE education_id = %s AND alumni_id = %s", 
+                (education_id, alumni_id)
+            )
+            
+            if not cursor.fetchone():
+                return {"error": "Education record not found or does not belong to this alumni"}
+            
+            # Delete the education record
+            cursor.execute(
+                "DELETE FROM education WHERE education_id = %s", 
+                (education_id,)
+            )
+            
+            conn.commit()
+            return {"status": "success", "message": "Education record deleted successfully"}
+            
+        except Exception as e:
+            conn.rollback()
+            return {"error": str(e)}
+        finally:
+            conn.close()
+
     @staticmethod
     def get_alumni_by_id(alumni_id):
         # Reuse the alumni service method
@@ -550,3 +699,4 @@ class AdminService:
             return {"error": str(e)}
         finally:
             conn.close()
+

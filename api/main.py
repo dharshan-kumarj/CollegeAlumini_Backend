@@ -127,15 +127,15 @@ async def get_all_alumni(
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
-@app.get("/api/admin/alumni/{id}")
-async def get_alumni_by_id(
-    id: int = Path(...),
-    current_user: dict = Depends(admin_only)
-):
-    result = AdminService.get_alumni_by_id(id)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
+# @app.get("/api/admin/alumni/{id}")
+# async def get_alumni_by_id(
+#     id: int = Path(...),
+#     current_user: dict = Depends(admin_only)
+# ):
+#     result = AdminService.get_alumni_by_id(id)
+#     if "error" in result:
+#         raise HTTPException(status_code=404, detail=result["error"])
+#     return result
 
 @app.put("/api/admin/alumni/{id}")
 async def update_alumni(
@@ -148,25 +148,62 @@ async def update_alumni(
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+# First define the specific route
 @app.get("/api/admin/alumni/filter")
 async def filter_alumni(
     department: Optional[str] = None,
-    graduation_year: Optional[int] = None,
+    end_year: Optional[int] = None,
+    start_year: Optional[int] = None,
+    cgpa: Optional[float] = None,
+    degree: Optional[str] = None,
+    full_name: Optional[str] = None,
     location: Optional[str] = None,
+    company_name: Optional[str] = None,
+    position: Optional[str] = None,
     availability_for_mentorship: Optional[bool] = None,
     current_user: dict = Depends(admin_only)
 ):
     filters = {}
     if department:
         filters["department"] = department
-    if graduation_year:
-        filters["graduation_year"] = graduation_year
+    if end_year:
+        filters["end_year"] = end_year
+    if start_year:
+        filters["start_year"] = start_year
+    if cgpa:
+        filters["cgpa"] = cgpa
+    if degree:
+        filters["degree"] = degree
+    if full_name:
+        filters["full_name"] = full_name
     if location:
         filters["location"] = location
+    if company_name:
+        filters["company_name"] = company_name
+    if position:
+        filters["position"] = position
     if availability_for_mentorship is not None:
         filters["availability_for_mentorship"] = availability_for_mentorship
     
     result = AdminService.filter_alumni(filters)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+# Then define the route with path parameter
+@app.get("/api/admin/alumni/{id}")
+async def get_alumni_by_id(
+    id: int = Path(...),
+    current_user: dict = Depends(admin_only)
+):
+    result = AdminService.get_alumni_by_id(id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+@app.get("/api/admin/filter-categories")
+async def get_filter_categories(current_user: dict = Depends(admin_only)):
+    result = AdminService.get_filter_categories()
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result

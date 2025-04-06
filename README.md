@@ -207,14 +207,45 @@ curl -X 'GET' \
 
 ## 10. Admin: Filter Alumni by Department
 
+### 5. curl commands to test the endpoints:
+
+#### Get filter categories:
 ```bash
-curl -X 'GET' \
-  'http://0.0.0.0:8000/api/admin/alumni/filter?department=Computer%20Science' \
-  -H 'accept: application/json' \
-  -H 'Authorization: Bearer {ADMIN_TOKEN}'
+curl -X GET "http://127.0.0.1:8000/api/admin/filter-categories" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-Remember to replace `{TOKEN}` and `{ADMIN_TOKEN}` with the actual tokens you receive after logging in. These tokens are required for authenticated endpoints.
+#### Filter alumni with various criteria:
+
+```bash
+# Filter by department and end year
+curl -X GET "http://127.0.0.1:8000/api/admin/alumni/filter?department=Computer%20Science&end_year=2023" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Filter by CGPA (>=3.5)
+curl -X GET "http://127.0.0.1:8000/api/admin/alumni/filter?cgpa=3.5" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Filter by company name
+curl -X GET "http://127.0.0.1:8000/api/admin/alumni/filter?company_name=Google" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Filter by position
+curl -X GET "http://127.0.0.1:8000/api/admin/alumni/filter?position=Software%20Engineer" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Filter by full name
+curl -X GET "http://127.0.0.1:8000/api/admin/alumni/filter?full_name=John" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Filter with multiple criteria
+curl -X GET "http://127.0.0.1:8000/api/admin/alumni/filter?department=Computer%20Science&end_year=2023&company_name=Google&position=Software%20Engineer" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+These changes will allow you to filter alumni based on fields from the alumni table (full_name, location), education table (department, start_year, end_year, cgpa, degree), and jobs table (company_name, position). The new endpoint will also provide all available filter options to populate dropdowns and other UI elements in your frontend.
+
+Remember to replace `YOUR_ACCESS_TOKEN` with an actual admin token obtained from logging in.
 
 # Additional Curl Commands for Alumni System API
 

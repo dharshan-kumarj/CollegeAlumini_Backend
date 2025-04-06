@@ -396,34 +396,126 @@ class AdminService:
             cursor = conn.cursor()
             
             query = """
-                SELECT a.*, u.email, u.username 
+                SELECT DISTINCT a.*, u.email, u.username 
                 FROM alumni a
                 JOIN users u ON a.user_id = u.user_id
-                WHERE 1=1
             """
+            
+            # Join with education and jobs tables if needed
+            education_filters = ["department", "end_year", "start_year", "cgpa", "degree"]
+            job_filters = ["company_name", "position"]
+            
+            has_education_filter = any(f in filters for f in education_filters)
+            has_job_filter = any(f in filters for f in job_filters)
+            
+            if has_education_filter:
+                query += " LEFT JOIN education e ON e.alumni_id = a.alumni_id"
+            
+            if has_job_filter:
+                query += " LEFT JOIN jobs j ON j.alumni_id = a.alumni_id"
+            
+            query += " WHERE 1=1"
             params = []
             
-            # Add filters dynamically
-            if "department" in filters:
-                query += " AND EXISTS (SELECT 1 FROM education e WHERE e.alumni_id = a.alumni_id AND e.department = %s)"
-                params.append(filters["department"])
-                
-            if "graduation_year" in filters:
-                query += " AND EXISTS (SELECT 1 FROM education e WHERE e.alumni_id = a.alumni_id AND e.end_year = %s)"
-                params.append(filters["graduation_year"])
-                
+            # Add alumni table filters
+            if "full_name" in filters and filters["full_name"]:
+                query += " AND a.full_name ILIKE %s"
+                params.append(f"%{filters['full_name']}%")
+            
             if "location" in filters and filters["location"]:
-                query += " AND a.current_location LIKE %s"
+                query += " AND a.current_location ILIKE %s"
                 params.append(f"%{filters['location']}%")
-                
+            
             if "availability_for_mentorship" in filters:
                 query += " AND a.availability_for_mentorship = %s"
                 params.append(filters["availability_for_mentorship"])
+            
+            # Add education table filters
+            if "department" in filters:
+                query += " AND e.department = %s"
+                params.append(filters["department"])
+            
+            if "end_year" in filters:
+                query += " AND e.end_year = %s"
+                params.append(filters["end_year"])
+            
+            if "start_year" in filters:
+                query += " AND e.start_year = %s"
+                params.append(filters["start_year"])
+            
+            if "cgpa" in filters:
+                query += " AND e.cgpa >= %s"
+                params.append(filters["cgpa"])
+            
+            if "degree" in filters:
+                query += " AND e.degree = %s"
+                params.append(filters["degree"])
+            
+            # Add job table filters
+            if "company_name" in filters:
+                query += " AND j.company_name ILIKE %s"
+                params.append(f"%{filters['company_name']}%")
+            
+            if "position" in filters:
+                query += " AND j.position ILIKE %s"
+                params.append(f"%{filters['position']}%")
             
             cursor.execute(query, params)
             alumni_list = cursor.fetchall()
             
             return {"data": [dict(alumni) for alumni in alumni_list]}
+            
+        except Exception as e:
+            return {"error": str(e)}
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_filter_categories():
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            categories = {}
+            
+            # Get all departments
+            cursor.execute("SELECT DISTINCT department FROM education WHERE department IS NOT NULL")
+            departments = [row["department"] for row in cursor.fetchall()]
+            categories["departments"] = departments
+            
+            # Get all graduation years
+            cursor.execute("SELECT DISTINCT end_year FROM education WHERE end_year IS NOT NULL ORDER BY end_year DESC")
+            grad_years = [row["end_year"] for row in cursor.fetchall()]
+            categories["graduation_years"] = grad_years
+            
+            # Get all start years
+            cursor.execute("SELECT DISTINCT start_year FROM education WHERE start_year IS NOT NULL ORDER BY start_year DESC")
+            start_years = [row["start_year"] for row in cursor.fetchall()]
+            categories["start_years"] = start_years
+            
+            # Get all degrees
+            cursor.execute("SELECT DISTINCT degree FROM education WHERE degree IS NOT NULL")
+            degrees = [row["degree"] for row in cursor.fetchall()]
+            categories["degrees"] = degrees
+            
+            # Get all companies
+            cursor.execute("SELECT DISTINCT company_name FROM jobs WHERE company_name IS NOT NULL")
+            companies = [row["company_name"] for row in cursor.fetchall()]
+            categories["companies"] = companies
+            
+            # Get all positions
+            cursor.execute("SELECT DISTINCT position FROM jobs WHERE position IS NOT NULL")
+            positions = [row["position"] for row in cursor.fetchall()]
+            categories["positions"] = positions
+            
+            # Get all locations from alumni
+            cursor.execute("SELECT DISTINCT current_location FROM alumni WHERE current_location IS NOT NULL")
+            locations = [row["current_location"] for row in cursor.fetchall()]
+            categories["locations"] = locations
+            
+            return categories
             
         except Exception as e:
             return {"error": str(e)}

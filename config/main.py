@@ -11,11 +11,11 @@ load_dotenv()
 
 # Database configuration
 DB_CONFIG = {
-    "host": os.getenv("POSTGRES_HOST", "172.20.0.2"),
+    "host": os.getenv("POSTGRES_HOST", "db"),
     "port": os.getenv("POSTGRES_PORT", "5432"),
     "database": os.getenv("POSTGRES_DB", "alumni_db"),
     "user": os.getenv("POSTGRES_USER", "postgres"),
-    "password": os.getenv("POSTGRES_PASSWORD", "postgres")
+    "password": os.getenv("POSTGRES_PASSWORD", "mysecurepassword123")
 }
 
 # JWT Configuration

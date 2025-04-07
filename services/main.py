@@ -164,7 +164,38 @@ class AlumniService:
             return {"error": str(e)}
         finally:
             conn.close()
-    
+    @staticmethod
+    def get_profile_image(alumni_id):
+        conn = get_db_connection()
+        if not conn:
+            return {"error": "Database connection failed"}
+        
+        try:
+            cursor = conn.cursor()
+            
+            # Get the profile image path from the database
+            cursor.execute(
+                "SELECT profile_image FROM alumni WHERE alumni_id = %s",
+                (alumni_id,)
+            )
+            
+            result = cursor.fetchone()
+            if not result or not result["profile_image"]:
+                return {"error": "Profile image not found"}
+            
+            image_path = result["profile_image"]
+            
+            # You might want to check if the file exists here
+            # For example: if not os.path.exists(image_path): return {"error": "Image file not found"}
+            
+            return {"image_path": image_path, "status": "success"}
+            
+        except Exception as e:
+            return {"error": str(e)}
+        finally:
+            conn.close()
+
+
     @staticmethod
     def create_profile_entry(alumni_id, entry_data):
         conn = get_db_connection()

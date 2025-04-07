@@ -1,10 +1,13 @@
+import uuid
 from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File, Query, Path, Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, Dict, Any, List
-from config.main import oauth2_scheme, decode_jwt_token
+from config.main import get_db_connection, oauth2_scheme, decode_jwt_token
 from services.main import AuthService, AlumniService, AdminService
 import os
+from fastapi.responses import FileResponse
+from fastapi import UploadFile, File
 
 app = FastAPI(title="College Alumni System")
 
@@ -91,6 +94,75 @@ async def update_profile(
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+
+
+@app.post("/api/alumni/profile/image")
+async def upload_profile_image(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(alumni_only)
+):
+    alumni_id = current_user.get("alumni_id")
+    if not alumni_id:
+        raise HTTPException(status_code=404, detail="Alumni profile not found")
+    
+    # Create uploads directory if it doesn't exist
+    upload_dir = os.path.join("uploads", "profile_images")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Generate unique filename
+    file_extension = os.path.splitext(file.filename)[1]
+    unique_filename = f"{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    # Save file
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    
+    # Update database with new file path
+    conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE alumni SET profile_image = %s WHERE alumni_id = %s",
+            (file_path, alumni_id)
+        )
+        conn.commit()
+        return {"filename": unique_filename, "status": "success"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+@app.get("/api/alumni/profile/image/{alumni_id}")
+async def get_profile_image(
+    alumni_id: int = Path(...),
+    current_user: dict = Depends(get_current_user)  # You can use get_current_user or alumni_only based on your requirements
+):
+    # Check if the requesting user has permission to view this image
+    is_owner = current_user.get("alumni_id") == alumni_id
+    is_admin = not current_user.get("is_alumni", True)
+    
+    if not (is_owner or is_admin):
+        raise HTTPException(status_code=403, detail="Not authorized to view this image")
+    
+    result = AlumniService.get_profile_image(alumni_id)
+    
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    
+    # Assuming the image path is stored in profile_image field
+    image_path = result["image_path"]
+    
+    # Check if file exists
+    if not os.path.isfile(image_path):
+        raise HTTPException(status_code=404, detail="Image file not found")
+    
+    return FileResponse(image_path)
+
 @app.delete("/api/alumni/profile/{type}/{id}")
 async def delete_profile_item(
     type: str = Path(...),
@@ -105,15 +177,6 @@ async def delete_profile_item(
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
-
-@app.post("/api/alumni/profile/image")
-async def upload_profile_image(
-    file: UploadFile = File(...),
-    current_user: dict = Depends(alumni_only)
-):
-    # This is a placeholder for image upload functionality
-    # In a real app, you would save the image and update the database
-    return {"filename": file.filename, "status": "Image upload placeholder"}
 
 # ------------------------------ ADMIN ROUTES ------------------------------
 @app.get("/api/admin/alumni")
